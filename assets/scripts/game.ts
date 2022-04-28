@@ -6,8 +6,8 @@ const { ccclass, property } = _decorator;
 @ccclass('game')
 export class game extends Component {
 
-    ROW_NUM:number = 6;
-    COL_NUM:number = 10;
+    ROW_NUM:number = 8;
+    COL_NUM:number = 6;
     @property(Prefab)
     boxPrefab:Prefab = null;
     _boxSize:number;
@@ -27,7 +27,7 @@ export class game extends Component {
         var refresh = this.node.parent.getChildByName("refresh");
         refresh.on("touch-start", this.onRefresh, refresh);
 
-        this._boxSize = view.getVisibleSize().width/this.COL_NUM;
+        this._boxSize = Math.floor(view.getVisibleSize().width/this.COL_NUM);
         for (var row:number = 0; row < this.ROW_NUM; row++ ) {
             var y:number = row * this._boxSize + this._boxSize/2;
             var boxRowArray = [];
@@ -72,6 +72,7 @@ export class game extends Component {
             return;
         }
         var col = (box.node.position.x - this._boxSize/2) / this._boxSize;
+        console.log(box.node.position.x + "," + this._boxSize/2 + "," + this._boxSize);
         var row = (box.node.position.y - this._boxSize/2) / this._boxSize;
         console.log("clickbox x:" + box.node.position.x + ", y : " + box.node.position.y);
         console.log("clickbox col:" + col + ", row : " + row);
