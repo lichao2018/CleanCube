@@ -41,7 +41,9 @@ export class box extends Component {
     }
 
     clear(){
-        this.getComponent(Sprite).color = Color.WHITE;
+        this.getComponent(Sprite).color = this._game.defaultColor;
+        //todo 添加消除动画
+        //todo 动画结束时清除方块对象
     }
 }
 
