@@ -1,5 +1,5 @@
 
-import { _decorator, Component, Node, Sprite, Color } from 'cc';
+import { _decorator, Component, Node, Sprite, Color, instantiate, tween, Vec2, Vec3, director } from 'cc';
 import {game} from './game';
 const { ccclass, property } = _decorator;
  
@@ -41,9 +41,34 @@ export class box extends Component {
     }
 
     clear(){
+        var cloneBox = instantiate(this.node);
+        cloneBox.parent = this.node.parent;
+        cloneBox.setPosition(this.node.position);
+        var cloneBoxScript:any = cloneBox.getComponent("box");
+        cloneBoxScript.playClearAnimation();
+
         this.getComponent(Sprite).color = this._game.defaultColor;
         //todo 添加消除动画
+
+        
         //todo 动画结束时清除方块对象
+    }
+
+    playClearAnimation(){
+        tween(this.node.position)
+            .to(0.1, new Vec3(this.node.position.x, this.node.position.y - 10, 0), 
+                {
+                    easing: "fade",
+                    onUpdate:(target: Vec3, ratio: number) => {
+                        console.log("target:    " + target)
+                        this.node.position = target
+                    },
+                    onComplete:(target:object) => {
+                        console.log("play clear animation oncomplete")
+                        this.node.destroy();
+                    }
+                })
+            .start();
     }
 }
 

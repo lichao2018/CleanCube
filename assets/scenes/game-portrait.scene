@@ -359,9 +359,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 121,
-      "g": 142,
-      "b": 140,
+      "r": 45,
+      "g": 51,
+      "b": 42,
       "a": 255
     },
     "_spriteFrame": {
@@ -396,9 +396,9 @@
     "COL_NUM": 6,
     "defaultColor": {
       "__type__": "cc.Color",
-      "r": 142,
-      "g": 162,
-      "b": 162,
+      "r": 235,
+      "g": 247,
+      "b": 246,
       "a": 255
     },
     "boxPrefab": {
