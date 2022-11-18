@@ -6,7 +6,7 @@ const { ccclass, property } = _decorator;
 @ccclass('game')
 export class game extends Component {
 
-    @property(Number)
+    @property(Number) 
     ROW_NUM:number = 8;
     @property(Number)
     COL_NUM:number = 6;
