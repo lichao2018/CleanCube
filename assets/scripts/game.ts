@@ -121,7 +121,6 @@ export class game extends Component {
 
     start () {
         // [3]
-        console.log("game start");
     }
 
     createBox(position:Vec3, color:Color):Node{
