@@ -1,5 +1,5 @@
 
-import { _decorator, Component, Node, view, Vec3, Prefab, director, instantiate, Color, Sprite, AudioClip, AudioSource, Label } from 'cc';
+import { _decorator, Component, Node, view, Vec3, Prefab, director, instantiate, Color, Sprite, AudioClip, AudioSource, Label, UITransform } from 'cc';
 import {box} from './box';
 const { ccclass, property } = _decorator;
  
@@ -21,7 +21,8 @@ export class game extends Component {
     @property(Number)
     countDownTime:number = 60;
     @property(Number)
-    rewardTime:number = 2;
+    _rewardTime:number = 1;
+    rewardTime:number = 0;
     @property(Number)
     punishTime:number = 5;
     //错误音效
@@ -36,7 +37,8 @@ export class game extends Component {
         this.wrongAudioEffect = this.getComponents(AudioSource)[0];
         this.rightAudioEffect = this.getComponents(AudioSource)[1];
         this.scoreLabel = this.node.parent.getChildByName("score").getComponent(Label);
-        this.countDownTimeLabel = this.node.parent.getChildByName("time").getComponent(Label);
+        this.countDownTimeLabel = this.node.parent.getChildByPath("timeFrameOut/timeFrameIn/time").getComponent(Label);
+        this.countDownTimeLabel.string = this.countDownTime + "";
         var refresh = this.node.parent.getChildByName("refresh");
         refresh.on("touch-start", this.onRefresh, refresh);
 
@@ -56,7 +58,7 @@ export class game extends Component {
                     color = this.colorArray[rand];
                 }
                 var box = this.createBox(position, color);
-                boxRowArray[col] = box;
+                boxRowArray[col] = box.getChildByName("body");
             }
             this._boxArray[row] = boxRowArray;
         }
@@ -65,17 +67,52 @@ export class game extends Component {
     }
 
     timeCallback = function(){
+        if(this.noClickBox()){
+            this.gameStop();
+            return;
+        }
         this.countDownTime -= 1;
-        this.countDownTimeLabel.string = this.countDownTime;
-        if(this.countDownTime < 0){
+        if(this.countDownTime <= 0){
+            this.countDownTime = 0;
+        }
+        this.countDownTimeLabel.string = this.countDownTime + "";
+        if(this.countDownTime <= 0){
             this.gameStop();
         }
     };
 
     retiming(){
+        if(this.countDownTime <= 0){
+            this.countDownTime = 0;
+        }
         this.countDownTimeLabel.string = this.countDownTime + "";
         this.unschedule(this.timeCallback);
+        if(this.countDownTime <= 0){
+            this.gameStop();
+            return;
+        }
+        if(this.noClickBox()){
+            this.gameStop();
+            return;
+        }
         this.schedule(this.timeCallback, 1);
+    }
+
+    noClickBox = function():boolean{
+        for (var i:number = 0; i < this._boxArray.length; i++ ) {
+            var boxRowArray = this._boxArray[i]
+            for (var j: number = 0; j < boxRowArray.length; j++) {
+                var box = boxRowArray[j];
+                if (!this.compareColor(box.getComponent(Sprite).color, this.defaultColor)) {
+                    continue;
+                }
+                var clearBox = this.clearCrossBoxs(j, i);
+                if(this.findClearBox(clearBox, false)){
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     onRefresh(){
@@ -90,9 +127,15 @@ export class game extends Component {
     createBox(position:Vec3, color:Color):Node{
         var box = instantiate(this.boxPrefab);
         box.setPosition(position);
-        box.getComponent(Sprite).color = color;
+        box.getChildByName("body").getComponent(Sprite).color = color;
+        box.getComponent(UITransform).width = this._boxSize;
+        box.getComponent(UITransform).height = this._boxSize;
+        box.getChildByName("background").getComponent(UITransform).width = this._boxSize;
+        box.getChildByName("background").getComponent(UITransform).height = this._boxSize;
+        box.getChildByName("body").getComponent(UITransform).width = this._boxSize * 0.9;
+        box.getChildByName("body").getComponent(UITransform).height = this._boxSize * 0.9;
         this.node.addChild(box);
-        var boxScript:any = box.getComponent("box");
+        var boxScript:any = box.getChildByName("body").getComponent("box");
         boxScript.setGame(this);
         return box;
     }
@@ -105,21 +148,22 @@ export class game extends Component {
             this.clickWrong();
             return;
         }
-        var col = (box.node.position.x - this._boxSize/2) / this._boxSize;
-        console.log(box.node.position.x + "," + this._boxSize/2 + "," + this._boxSize);
-        var row = (box.node.position.y - this._boxSize/2) / this._boxSize;
-        console.log("clickbox x:" + box.node.position.x + ", y : " + box.node.position.y);
-        console.log("clickbox col:" + col + ", row : " + row);
-        this.clearCrossBoxs(col, row);
+        var col = (box.node.getParent().position.x - this._boxSize/2) / this._boxSize;
+        var row = (box.node.getParent().position.y - this._boxSize/2) / this._boxSize;
+        var clearBox = this.clearCrossBoxs(col, row);
+        if(this.findClearBox(clearBox, true)){
+            this.clickRight();
+        }else{
+            this.clickWrong();
+        }
     }
 
-    clearCrossBoxs(crossCol: number, crossRow:number) {
+    clearCrossBoxs(crossCol: number, crossRow:number) : any{
         var clearBoxs = [];
         for (var row: number = crossRow-1; row >= 0; row--) {
             var box = this._boxArray[row][crossCol];
             if (!this.compareColor(box.getComponent(Sprite).color, this.defaultColor)) {
                 clearBoxs.push(box);
-                console.log("1find box col : " + crossCol + ", row : " + row);
                 break;
             }
         }
@@ -127,7 +171,6 @@ export class game extends Component {
             var box = this._boxArray[row][crossCol];
             if (!this.compareColor(box.getComponent(Sprite).color, this.defaultColor)) {
                 clearBoxs.push(box);
-                console.log("2find box col : " + crossCol + ", row : " + row);
                 break;
             }
         }
@@ -135,7 +178,6 @@ export class game extends Component {
             var box = this._boxArray[crossRow][col];
             if (!this.compareColor(box.getComponent(Sprite).color, this.defaultColor)) {
                 clearBoxs.push(box);
-                console.log("3find box col : " + col + ", row : " + crossRow);
                 break;
             }
         }
@@ -143,56 +185,59 @@ export class game extends Component {
             var box = this._boxArray[crossRow][col];
             if (!this.compareColor(box.getComponent(Sprite).color, this.defaultColor)) {
                 clearBoxs.push(box);
-                console.log("4find box col : " + col + ", row : " + crossRow);
                 break;
             }
         }
-        this.findClearBox(clearBoxs);
+        return clearBoxs;
     }
 
-    findClearBox(clearBoxs: any[]) {
+    findClearBox(clearBoxs: any[], clearBox:boolean) :boolean{
         for (var i = 0; i < clearBoxs.length; i++) {
             var colorI = clearBoxs[i].getComponent(Sprite).color;
             if(colorI == Color.WHITE){
                 continue;
             }
             for (var j = i + 1; j < clearBoxs.length; j++) {
-                console.log(clearBoxs[i].getComponent(Sprite).color + ", " + clearBoxs[j].getComponent(Sprite).color);
                 var colorJ = clearBoxs[j].getComponent(Sprite).color;
                 if (this.compareColor(colorI, colorJ)) {
-                    console.log(i + " clear");
                     clearBoxs[i]["clear"] = true;
                     clearBoxs[j]["clear"] = true;
                 }
             }
         }
         var wrongClick = true;
+        this.rewardTime = 0;
         for (var i = 0; i < clearBoxs.length; i++) {
             if (clearBoxs[i]["clear"]) {
                 wrongClick = false;
-                this.score += 10;
-                this.clearBox(clearBoxs[i]);
+                if(clearBox){
+                    this.score += 10;
+                    this.rewardTime += this._rewardTime;
+                    this.clearBox(clearBoxs[i]);
+                }
             }
         }
-        if(wrongClick){
-            this.clickWrong();
-        }else{
-            this.clickRight();
-        }
+        return !wrongClick;
     }
 
     clickWrong(){
+        if(this._gameStop){
+            return;
+        }
         this.wrongAudioEffect.play();
         this.score -= 10;
-        this.scoreLabel.string = "score:" + this.score;
+        this.scoreLabel.string = "" + this.score;
         this.countDownTime -= this.punishTime;
         this.retiming();
     }
 
     clickRight(){
+        if(this._gameStop){
+            return;
+        }
         this.countDownTime += this.rewardTime;
         this.rightAudioEffect.play();
-        this.scoreLabel.string = "score:" + this.score;
+        this.scoreLabel.string = "" + this.score;
         this.retiming();
     }
 
